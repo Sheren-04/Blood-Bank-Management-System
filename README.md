@@ -53,7 +53,9 @@ npm run preview
 Axios (API calls)
 npm install axios
 
-#BACKEND SETUP (Node + Express + TypeScript)
+=========================
+🚀 BACKEND SETUP (Node + Express + TS)
+=========================
 First time initialization
 cd backend
 npm init -y
@@ -89,6 +91,9 @@ npm run dev
 npm run build
 npm start
 
+=========================
+🔐 Environment Variables
+=========================
 🔐 Environment Variables
 Backend (.env)
 
@@ -100,6 +105,7 @@ PORT=5000
 MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/bloodbank
 JWT_SECRET=your_secret_key
 NODE_ENV=development
+
 
 Frontend (.env)
 Create:
@@ -124,3 +130,16 @@ npm cache clean --force
 Reinstall packages
 rm -rf node_modules package-lock.json
 npm install
+
+✅ Features
+Donor registration
+Blood request system
+Contact form
+Admin dashboard
+JWT authentication
+Protected routes
+MongoDB storage
+
+👨‍💻 Author
+Sheren
+Graphic Designer & Developer
