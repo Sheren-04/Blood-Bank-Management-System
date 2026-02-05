@@ -1,6 +1,6 @@
 #Blood Bank Management System (MERN + TypeScript)
 A full-stack Blood Bank Management System built with the MERN stack.
-Tech Stack
+*Tech Stack*
 Frontend: React + Vite + TypeScript + Tailwind
 Backend: Node.js + Express + TypeScript
 Database: MongoDB (Atlas)
@@ -8,8 +8,8 @@ Auth: JWT + bcrypt
 
 #System Requirements
 Install:
-Node.js (LTS)
-npm (comes with Node)
+- Node.js (LTS)
+- npm (comes with Node)
 
 Verify:
 node -v
@@ -36,7 +36,7 @@ npm install
 npm run dev
 
 #FRONTEND SETUP (React + Vite)
-Install dependencies
+*Install dependencies
 cd frontend
 npm install
 
@@ -50,7 +50,7 @@ npm run build
 npm run preview
 
 #Install additional packages (if needed)
-Axios (API calls)
+*Axios (API calls)
 npm install axios
 
 =========================
@@ -75,7 +75,7 @@ npx tsc --init
 npx tsc --showConfig
 
 ▶ Backend Scripts
-Add this inside backend/package.json
+*Add this inside backend/package.json
 "scripts": {
   "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
   "build": "tsc",
@@ -84,7 +84,7 @@ Add this inside backend/package.json
 }
 
 #Run backend
-Development (auto reload)
+*Development (auto reload)
 npm run dev
 
 #Production
@@ -95,9 +95,9 @@ npm start
 🔐 Environment Variables
 =========================
 🔐 Environment Variables
-Backend (.env)
+- Backend (.env)
 
-Create:
+*Create:
 backend/.env
 
 Example:
@@ -108,7 +108,7 @@ NODE_ENV=development
 
 
 Frontend (.env)
-Create:
+*Create:
 frontend/.env
 VITE_API_URL=http://localhost:5000/api
 
@@ -132,14 +132,14 @@ rm -rf node_modules package-lock.json
 npm install
 
 ✅ Features
-Donor registration
-Blood request system
-Contact form
-Admin dashboard
-JWT authentication
-Protected routes
-MongoDB storage
+- Donor registration
+- Blood request system
+- Contact form
+- Admin dashboard
+- JWT authentication
+- Protected routes
+- MongoDB storage
 
 👨‍💻 Author
-Sheren
+*Sheren
 Graphic Designer & Developer
