@@ -1,7 +1,7 @@
 import { Sidebar } from '../components/dashboard/Sidebar';
 import { TopBar } from '../components/dashboard/TopBar';
-import { InventoryStatsCards } from './components/dashboard/InventoryStatsCards';
-import { InventoryTable } from './components/dashboard/InventoryTable';
+import { InventoryStatsCards } from '../components/dashboard/InventoryStatsCards';
+import { InventoryTable } from '../components/dashboard/InventoryTable';
 import { useEffect, useState } from "react";
 import axios from "axios";
 
