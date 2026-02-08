@@ -6,6 +6,7 @@ const menuItems = [
   { id: 'donors', label: 'Donors', path: '/admin/donors' },
   { id: 'blood-requests', label: 'Blood Requests', path: '/admin/requests' },
   { id: 'contact-queries', label: 'Contact Queries', path: '/admin/queries' },
+  { id: 'inventory', label: 'Inventory', path: '/admin/inventory'},
   { id: 'change-password', label: 'Change Password', path: '/admin/change-password' },
 ];
 interface SidebarProps {

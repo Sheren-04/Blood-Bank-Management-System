@@ -2,8 +2,11 @@ import app from './app';
 import connectDB from './config/db';
 import dotenv from 'dotenv';
 import donorRoutes from './routes/donorRoutes';
+import inventoryRoutes from './routes/inventoryRoutes';
+import { seedInventory } from "./utils/seedInventory";
 
 app.use('/api/donors', donorRoutes);
+app.use("/api/inventory", inventoryRoutes);
 
 dotenv.config();
 
@@ -22,6 +25,7 @@ const startServer = async () => {
   try {
     // 1. Connect to MongoDB
     await connectDB();
+    await seedInventory();
     console.log('Database connected successfully');
 
     // 2. Start Express server

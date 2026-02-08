@@ -15,6 +15,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import DonorsManagement from './pages/DonorsManagement';
 import BloodRequestManagement from './pages/BloodRequestsManagement';
 import ContactQueriesManagement from './pages/ContactQueriesManagement';
+import InventoryManagement from './pages/InventoryManagement';
 import ChangePassword from './pages/ChangePassword';
 
 //scroll to top on route change
@@ -57,7 +58,7 @@ function App() {
           } 
         />
         
-        {/* <Route 
+        <Route 
           path="/admin/requests" 
           element={
             <ProtectedRoute>
@@ -73,8 +74,17 @@ function App() {
               <ContactQueriesManagement />
             </ProtectedRoute>
           } 
-        /> */}
+        /> 
         
+        <Route 
+          path="/admin/inventory" 
+          element={
+            <ProtectedRoute>
+              <InventoryManagement />
+            </ProtectedRoute>
+          } 
+        />
+
         <Route 
           path="/admin/change-password" 
           element={
