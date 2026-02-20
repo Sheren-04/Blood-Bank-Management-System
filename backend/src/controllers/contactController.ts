@@ -113,3 +113,50 @@ export const deleteContactMessage = async (req: Request, res: Response): Promise
     });
   }
 };
+
+// =====================
+// UPDATE CONTACT STATUS
+// PUT /api/contact/:id
+// =====================
+
+export const updateContactStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      res.status(400).json({
+        success: false,
+        message: "Status is required"
+      });
+      return;
+    }
+
+    const updatedMessage = await ContactMessage.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!updatedMessage) {
+      res.status(404).json({
+        success: false,
+        message: "Message not found"
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Status updated successfully",
+      data: updatedMessage
+    });
+
+  } catch (error) {
+    console.error("Update contact status error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while updating status"
+    });
+  }
+};
