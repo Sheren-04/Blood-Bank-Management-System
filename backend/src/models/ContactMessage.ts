@@ -10,6 +10,7 @@ export interface IContactMessage extends Document {
   message: string;
   phone: string;
   subject: string;
+  status: "New" | "Replied" | "Closed";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +44,11 @@ const contactMessageSchema = new Schema<IContactMessage>(
       trim: true,
       minlength: [10, 'Message must be at least 10 characters'],
       maxlength: [1000, 'Message cannot exceed 1000 characters']
+    },
+    status: {
+      type: String,
+      enum: ["New", "Replied", "Closed"],
+      default: "New"  
     },
     phone: {
     type: String,
