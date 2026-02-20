@@ -4,6 +4,7 @@ export interface IInventory extends Document {
   bloodGroup: string;
   unitsAvailable: number;
   pricePerUnit: number;
+  status: string;
 }
 
 const inventorySchema = new Schema<IInventory>(
@@ -25,6 +26,11 @@ const inventorySchema = new Schema<IInventory>(
       required: true,
       min: 0,
       default: 3000,
+    },
+    status: {
+      type: String,
+      enum: ["Available", "Low", "Out of Stock"],
+      required: true
     },
   },
   { timestamps: true }
