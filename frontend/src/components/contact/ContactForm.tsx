@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Phone, Send } from 'lucide-react';
+import api from '../../services/api';
 
 export function ContactForm() {
   const navigate = useNavigate();
@@ -21,29 +22,27 @@ export function ContactForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    try {
-      const response = await fetch('http://localhost:5000/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.fullName,
-          email: formData.email,
-          message: formData.message,
-          phone: formData.phone,
-          subject: formData.subject
-        })
-      });
+   try {
+  const response = await api.post('/contact', {
+    name: formData.fullName,
+    email: formData.email,
+    message: formData.message,
+    phone: formData.phone,
+    subject: formData.subject
+  });
 
-      if (response.ok) {
-        alert('Message sent successfully!');
-        navigate('/');
-      } else {
-        alert('Failed to send message!');
-      }
-    } catch (error) {
-      alert('Error connecting to server!');
-    }
-  };
+  alert('Message sent successfully!');
+  navigate('/');
+
+} catch (error: any) {
+  if (error.response) {
+    // Backend responded with error (400, 500, etc.)
+    alert(error.response.data.message || 'Failed to send message!');
+  } else {
+    // Network error / server not reachable
+    alert('Error connecting to server!');
+  }
+}}
 
   return (
     <section className="bg-gray-50 py-20">
