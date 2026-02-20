@@ -2,12 +2,134 @@ import { Sidebar } from '../components/dashboard/Sidebar';
 import { TopBar } from '../components/dashboard/TopBar';
 import { QueryStatsCards } from '../components/dashboard/QueryStatsCards';
 import { ContactQueriesTable } from '../components/dashboard/ContactQueriesTable';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import api from '../services/api';
+
+// =====================
+// TYPES
+// =====================
+
+export interface ContactQuery {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  subject?: string;
+  message: string;
+  status: "New" | "Replied" | "Closed";
+  createdAt: string;
+}
+
+export interface QuerySummary {
+  total: number;
+  new: number;
+  replied: number;
+  closed: number;
+} 
+
+interface ContactQueriesResponse {
+  success: boolean;
+  queries: ContactQuery[];
+  summary: QuerySummary;
+}
+
+// =====================
+// COMPONENT
+// =====================
 
 export default function ContactQueriesManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
+  
+  const [queries, setQueries] = useState<ContactQuery[]>([]);
+const summary: QuerySummary = {
+  total: queries.length,
+  new: queries.filter(q => q.status === "New").length,
+  replied: queries.filter(q => q.status === "Replied").length,
+  closed: queries.filter(q => q.status === "Closed").length,
+};
+
+
+  const [loading, setLoading] = useState(true);
+
+  // const token = sessionStorage.getItem("token");
+
+  // =====================
+  // FETCH CONTACT QUERIES
+  // =====================
+
+  const fetchContactQueries = async () => {
+  try {
+    setLoading(true);
+
+    const response = await api.get<ContactQueriesResponse>("/contact");
+
+    setQueries(response.data.data);
+
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("Fetch contact queries failed:", error.response?.data);
+
+      if (error.response?.status === 401) {
+        sessionStorage.removeItem("token");
+        window.location.href = "/admin/login";
+      }
+    } else {
+      console.error("Fetch contact queries failed:", error);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  // =====================
+  // UPDATE QUERY STATUS
+  // =====================
+
+  const handleStatusUpdate = async (id: string, newStatus: "New" | "Replied" | "Closed") => {
+    try {
+      await api.put(
+        `/contact/${id}`,
+        { status: newStatus }
+      );
+
+      await fetchContactQueries();
+    } catch (error) {
+      console.error("Update status failed:", error);
+      alert("Failed to update status");
+    }
+  };
+
+  // =====================
+  // DELETE QUERY
+  // =====================
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this query?")) {
+      return;
+    }
+
+    try {
+      await api.delete(`/contact/${id}`);
+
+      await fetchContactQueries();
+    } catch (error) {
+      console.error("Delete query failed:", error);
+      alert("Failed to delete query");
+    }
+  };
+
+  // =====================
+  // FETCH ON MOUNT
+  // =====================
+
+  useEffect(() => {
+    fetchContactQueries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleClearFilters = () => {
     setSearchQuery('');
@@ -28,7 +150,7 @@ export default function ContactQueriesManagement() {
           </div>
 
           {/* Statistics Cards */}
-          <QueryStatsCards />
+          <QueryStatsCards summary={summary} />
 
           {/* Controls Row */}
           <div className="flex items-center gap-4 mb-6">
@@ -76,9 +198,13 @@ export default function ContactQueriesManagement() {
 
           {/* Contact Queries Table */}
           <ContactQueriesTable
+            queries={queries}
+            loading={loading}
             searchQuery={searchQuery}
             statusFilter={statusFilter}
             dateFilter={dateFilter}
+            onStatusUpdate={handleStatusUpdate}
+            onDelete={handleDelete}
           />
         </main>
       </div>
