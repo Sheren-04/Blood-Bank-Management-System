@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import api from '../../services/api';
 import axios from "axios";
 
 export function StatsBoxes() {
@@ -11,15 +12,11 @@ export function StatsBoxes() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = localStorage.getItem("token");
+        // const token = sessionStorage.getItem("token");
 
         const [donorsRes, requestsRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/donors", {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          axios.get("http://localhost:5000/api/requests", {
-            headers: { Authorization: `Bearer ${token}` }
-          })
+          api.get("/donors"),
+          api.get("/requests")
         ]);
 
         setStats({
