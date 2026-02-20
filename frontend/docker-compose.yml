@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: bloodbank_backend
+    restart: always
+    env_file:
+      - ./backend/.env.production
+    ports:
+      - "5000:5000"
+    networks:
+      - bloodbank_network
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: bloodbank_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - bloodbank_network
+
+networks:
+  bloodbank_network:
+    driver: bridge
