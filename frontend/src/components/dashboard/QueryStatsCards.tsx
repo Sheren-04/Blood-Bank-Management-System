@@ -1,11 +1,17 @@
-const stats = [
-  { label: 'Total Messages', value: 87 },
-  { label: 'New', value: 15 },
-  { label: 'Replied', value: 42 },
-  { label: 'Closed', value: 30 },
-];
+import type { QuerySummary } from '../../pages/ContactQueriesManagement';
 
-export function QueryStatsCards() {
+interface QueryStatsCardsProps {
+  summary: QuerySummary;
+}
+
+export function QueryStatsCards({ summary }: QueryStatsCardsProps) {
+  const stats = [
+    { label: 'Total Messages', value: summary?.total ?? 0 },
+    { label: 'New', value: summary?.new ?? 0 },
+    { label: 'Replied', value: summary?.replied ?? 0 },
+    { label: 'Closed', value: summary?.closed ?? 0 },
+  ];
+
   return (
     <div className="grid grid-cols-4 gap-6 mb-6">
       {stats.map((stat, index) => (
