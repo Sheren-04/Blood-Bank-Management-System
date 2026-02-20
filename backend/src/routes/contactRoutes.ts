@@ -5,6 +5,8 @@ import {
   deleteContactMessage 
 } from '../controllers/contactController';
 import { protect } from '../middleware/authMiddleware';
+import { updateContactStatus } from '../controllers/contactController';
+
 
 const router = express.Router();
 
@@ -26,5 +28,8 @@ router.get('/', protect, getAllContactMessages);
 // @desc    Delete a contact message (admin only)
 // @access  Protected
 router.delete('/:id', protect, deleteContactMessage);
+
+router.put('/:id', protect, updateContactStatus);
+
 
 export default router;
