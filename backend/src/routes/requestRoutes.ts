@@ -2,7 +2,8 @@ import express from 'express';
 import { 
   createBloodRequest, 
   getAllBloodRequests, 
-  deleteBloodRequest 
+  deleteBloodRequest,
+  updateBloodRequestStatus
 } from '../controllers/requestController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -25,6 +26,11 @@ router.get('/', protect, getAllBloodRequests);
 // @route   DELETE /api/requests/:id
 // @desc    Delete a blood request (admin only)
 // @access  Protected
-router.delete('/:id', protect, deleteBloodRequest);
+router.delete('/:id', protect, deleteBloodRequest); 
+// @route   PUT /api/requests/:id
+// @desc    Update blood request status
+// @access  Protected
+router.put('/:id', protect, updateBloodRequestStatus);
+
 
 export default router;
