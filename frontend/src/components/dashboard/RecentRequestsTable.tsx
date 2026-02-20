@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+// import axios from "axios";
+import api from '../../services/api';
 
 interface Request {
   _id: string;
+  contactPerson: string;
+  phoneNumber: string;
+  email: string;
   bloodGroup: string;
   unitsRequired: number;
-  hospital: string;
-  urgency: string;
+  requiredDate: string;
+  urgency: 'Low' | 'Medium' | 'High' | 'Critical';
+  status: 'Pending' | 'Out for delivery' | 'Completed';
+  createdAt: string;
 }
 
 export function RecentRequestsTable() {
@@ -18,16 +24,9 @@ export function RecentRequestsTable() {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const token = localStorage.getItem("token");
+        // const token = sessionStorage.getItem("token");
 
-        const res = await axios.get(
-          "http://localhost:5000/api/admin/recent-requests",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const res = await api.get("/admin/recent-requests");
 
         setRequests(res.data);
       } catch (err) {
@@ -54,19 +53,25 @@ export function RecentRequestsTable() {
       <div className="bg-white border border-gray-300">
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-300">
-              <th className="text-left p-4">Blood Group</th>
-              <th className="text-left p-4">Units</th>
-              <th className="text-left p-4">Hospital / Location</th>
-              <th className="text-left p-4">Status</th>
-              <th className="text-left p-4">Action</th>
-            </tr>
-          </thead>
+          <tr className="bg-gray-50 border-b border-gray-300">
+            <th className="text-left p-4">Contact Person</th>
+            <th className="text-left p-4">Phone</th>
+            <th className="text-left p-4">Email</th>
+            <th className="text-left p-4">Blood Group</th>
+            <th className="text-left p-4">Units</th>
+            <th className="text-left p-4">Required Date</th>
+            <th className="text-left p-4">Urgency</th>
+            <th className="text-left p-4">Status</th>
+            <th className="text-left p-4">Created At</th>
+            <th className="text-left p-4">Action</th>
+          </tr>
+        </thead>
+
 
           <tbody>
             {requests.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center p-6 text-gray-400">
+                <td colSpan={10} className="text-center p-6 text-gray-400">
                   No requests found
                 </td>
               </tr>
@@ -76,9 +81,14 @@ export function RecentRequestsTable() {
                   key={request._id}
                   className="border-b border-gray-200 hover:bg-gray-50"
                 >
+                  <td className="p-4 font-medium">{request.contactPerson}</td>
+                  <td className="p-4">{request.phoneNumber}</td>
+                  <td className="p-4">{request.email}</td>
                   <td className="p-4 font-medium">{request.bloodGroup}</td>
                   <td className="p-4">{request.unitsRequired}</td>
-                  <td className="p-4">{request.hospital}</td>
+                  <td className="p-4">
+                    {new Date(request.requiredDate).toLocaleDateString()}
+                  </td>
 
                   <td className="p-4">
                     <span
@@ -96,6 +106,12 @@ export function RecentRequestsTable() {
                     </span>
                   </td>
 
+                  <td className="p-4">{request.status}</td>
+
+                  <td className="p-4 text-sm">
+                    {new Date(request.createdAt).toLocaleString()}
+                  </td>
+
                   <td className="p-4">
                     <button
                       onClick={handleView}
@@ -105,6 +121,7 @@ export function RecentRequestsTable() {
                     </button>
                   </td>
                 </tr>
+
               ))
             )}
           </tbody>
