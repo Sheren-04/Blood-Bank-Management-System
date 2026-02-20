@@ -8,13 +8,21 @@ import BloodRequest from '../models/BloodRequest';
 
 export const createBloodRequest = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { patientName, bloodGroup, unitsRequired, hospital, contact, urgency } = req.body;
+    const { patientName, age, gender, bloodGroup, unitsRequired, requiredDate, urgency, deliveryMethod, paymentMode, contactPerson, phoneNumber, email, deliveryAddress, additionalNotes, amount } = req.body;
 
     // 1. Validate required fields
-    if (!patientName || !bloodGroup || !unitsRequired || !hospital || !contact) {
+     if (!patientName || !bloodGroup || !unitsRequired || !requiredDate || !contactPerson || !phoneNumber || !email || !paymentMode || !deliveryMethod || !age || !gender || !urgency || !amount || amount < 0) {
       res.status(400).json({
         success: false,
-        message: 'Please provide all required fields: patientName, bloodGroup, unitsRequired, hospital, contact'
+        message: 'Please provide all required fields: patientName, age, gender, bloodGroup, unitsRequired, requiredDate, urgency, deliveryMethod, paymentMode, contactPerson, phoneNumber, email, and amount (must be a positive number)'
+      });
+      return;
+    }
+
+    if (deliveryMethod === 'delivery' && !deliveryAddress) {
+      res.status(400).json({
+        success: false,
+        message: 'Delivery address is required when delivery method is "delivery"'
       });
       return;
     }
@@ -22,11 +30,20 @@ export const createBloodRequest = async (req: Request, res: Response): Promise<v
     // 2. Create new blood request
     const bloodRequest = await BloodRequest.create({
       patientName,
+      age,
+      gender,
       bloodGroup,
       unitsRequired,
-      hospital,
-      contact,
-      urgency: urgency || 'Medium' // Default to Medium if not provided
+      requiredDate,
+      urgency,
+      deliveryMethod,
+      paymentMode,
+      contactPerson,
+      phoneNumber,
+      email,
+      deliveryAddress,
+      additionalNotes,
+      amount
     });
 
     // 3. Send response
@@ -113,4 +130,42 @@ export const deleteBloodRequest = async (req: Request, res: Response): Promise<v
       message: 'Server error while deleting blood request'
     });
   }
+};
+export const updateBloodRequestStatus = async (req: Request, res: Response) => {
+  try {
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status is required',
+      });
+    }
+
+    const request = await BloodRequest.findById(req.params.id);
+
+    if (!request) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Request not found',
+      });
+    }
+
+    request.status = status;
+    await request.save({ validateBeforeSave: false });
+
+    res.json({
+      success: true,
+      message: 'Status updated successfully',
+      data: request,
+    });
+
+  } catch (error: any) {
+  console.error("Update Status Error:", error);
+
+  res.status(500).json({
+    success: false,
+    message: error.message || "Server error",
+  });
+}
 };
