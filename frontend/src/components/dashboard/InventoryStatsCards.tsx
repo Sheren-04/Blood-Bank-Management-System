@@ -1,29 +1,64 @@
 import { Package, Droplet, AlertTriangle, DollarSign } from 'lucide-react';
+import type { InventorySummary } from '../../pages/InventoryManagement';
 
-const stats = [
-  {
-    icon: Package,
-    label: 'Total Units Available',
-    value: '120 Units',
-  },
-  {
-    icon: Droplet,
-    label: 'Blood Groups',
-    value: '8 Types',
-  },
-  {
-    icon: AlertTriangle,
-    label: 'Low Stock Alerts',
-    value: '2',
-  },
-  {
-    icon: DollarSign,
-    label: 'Average Price',
-    value: '₹3000',
-  },
-];
+// =====================
+// PROPS INTERFACE
+// =====================
 
-export function InventoryStatsCards() {
+interface InventoryStatsCardsProps {
+  summary: InventorySummary;
+}
+
+// =====================
+// COMPONENT
+// =====================
+
+export function InventoryStatsCards({ summary }: InventoryStatsCardsProps) {
+  const totalUnits = summary?.totalUnits ?? 0;
+  const bloodGroups = summary?.bloodGroups ?? 0;
+  const criticalStockCount = summary?.criticalStockCount ?? 0;
+
+  // ---- UPDATED STATUS LOGIC ----
+  // 0 → No Alerts
+  // 1-2 → Low
+  // 3+ → Critical
+  const getStockAlertStatus = (count: number): string => {
+    if (count === 0) return 'No Alerts';
+    if (count <= 2) return 'Low';
+    return 'Critical';
+  };
+
+  const criticalStockStatus = getStockAlertStatus(criticalStockCount);
+
+  // Keep same average logic (no UI change)
+  const averagePrice =
+    totalUnits > 0
+      ? Math.round((totalUnits * 3000) / totalUnits)
+      : 0;
+
+  const stats = [
+    {
+      icon: Package,
+      label: 'Total Units Available',
+      value: `${totalUnits} Units`,
+    },
+    {
+      icon: Droplet,
+      label: 'Blood Groups',
+      value: `${bloodGroups} Types`,
+    },
+    {
+      icon: AlertTriangle,
+      label: 'Critical Stock Alerts',
+      value: `${criticalStockCount} (${criticalStockStatus})`,
+    },
+    {
+      icon: DollarSign,
+      label: 'Average Price',
+      value: `₹${averagePrice.toLocaleString()}`,
+    },
+  ];
+
   return (
     <div className="mb-8">
       <h3 className="text-xl font-bold text-gray-900 mb-4">Inventory Summary</h3>
