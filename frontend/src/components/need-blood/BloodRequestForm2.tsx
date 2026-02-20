@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send } from 'lucide-react';
+import api from "../../services/api";
 
 export function BloodRequestForm() {
-const navigate = useNavigate();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     patientName: '',
@@ -20,54 +21,104 @@ const navigate = useNavigate();
     email: '',
     deliveryAddress: '',
     additionalNotes: '',
+    amount: ''
   });
 
+  const [inventory, setInventory] = useState<any[]>([]);
+
+
+  // Fetch inventory on mount
+  useEffect(() => {
+    const fetchInventory = async () => {
+      try {
+        const res = await api.get("/inventory");
+        setInventory(res.data.inventory);
+      } catch (err) {
+        console.error("Failed to fetch inventory");
+      }
+    };
+
+    fetchInventory();
+  }, []);
+
+const selectedInventory =
+  inventory.find(i => i.bloodGroup === formData.bloodGroup) || null;
+
+
+  // Calculate values
+  const availableUnits = selectedInventory?.unitsAvailable || 0;
+  const pricePerUnit = selectedInventory?.pricePerUnit || 0;
+  const unitsRequired = parseInt(formData.unitsRequired) || 0;
+  const bloodPrice = unitsRequired * pricePerUnit;
+  const deliveryCharge = formData.deliveryMethod === "delivery" ? 200 : 0;
+  const totalPayable = bloodPrice + deliveryCharge;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-  const { name, value } = e.target;
-  setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); 
+
+    // Prevent over-order
+    if (unitsRequired > availableUnits) {
+      alert("Not enough blood units available");
+      return;
+    }
+
+    // Validate units is at least 1
+    if (unitsRequired < 1) {
+      alert("Please enter at least 1 unit");
+      return;
+    }
 
     try {
-      const response = await fetch('http://localhost:5000/api/requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patientName: formData.patientName,
-          bloodGroup: formData.bloodGroup,
-          unitsRequired: formData.unitsRequired,
-          requiredDate: formData.requiredDate,
-          urgency: formData.urgency,
-          deliveryMethod: formData.deliveryMethod,
-          paymentMode: formData.paymentMode,
-          contactPerson: formData.contactPerson,
-          phoneNumber: formData.phoneNumber,
-          email: formData.email,
-          deliveryAddress: formData.deliveryAddress,
-          additionalNotes: formData.additionalNotes
-        })
+      // Submit the blood request - send empty string for deliveryAddress if pickup
+      await api.post("/requests", {
+        patientName: formData.patientName,
+        age: formData.age,
+        gender: formData.gender,
+        bloodGroup: formData.bloodGroup,
+        unitsRequired: formData.unitsRequired,
+        requiredDate: formData.requiredDate,
+        urgency: formData.urgency,
+        deliveryMethod: formData.deliveryMethod,
+        paymentMode: formData.paymentMode,
+        contactPerson: formData.contactPerson,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email,
+        deliveryAddress: formData.deliveryMethod === 'delivery' ? formData.deliveryAddress : '',
+        additionalNotes: formData.additionalNotes,
+        amount: totalPayable,
+        paymentStatus: "pending",
       });
 
-      if (response.ok) {
-        alert('Blood request submitted successfully!');
-        navigate('/about');
-      } else {
-        alert('Request submission failed!');
+      // Update inventory by deducting the units
+      if (selectedInventory && selectedInventory._id) {
+        const newUnitsAvailable = availableUnits - unitsRequired;
+        await api.put(`/inventory/${selectedInventory._id}`, {
+          unitsAvailable: newUnitsAvailable
+        });
       }
-    } catch (error) {
-      alert('Error connecting to server!');
+
+      alert("Blood request submitted successfully!");
+      navigate('/');
+    } catch (error: any) {
+      console.error(
+        "Submit failed:",
+        error.response?.data || error.message
+      );
+      alert("Failed to submit request. Please try again.");
     }
   };
 
-  // Mock inventory data
-  const availableUnits = 25;
-  const pricePerUnit = 3000;
-  const unitsRequired = parseInt(formData.unitsRequired) || 0;
-  const bloodPrice = unitsRequired * pricePerUnit;
-  const deliveryCharge = formData.deliveryMethod === 'delivery' ? 200 : 0;
-  const totalPayable = bloodPrice + deliveryCharge;
+  // Fixed button disabled logic
+  const isButtonDisabled = 
+    !formData.bloodGroup || 
+    !availableUnits || 
+    unitsRequired < 1 || 
+    unitsRequired > availableUnits;
 
   return (
     <section className="max-w-[1440px] mx-auto px-8 py-20">
@@ -115,8 +166,6 @@ const navigate = useNavigate();
                   value={formData.age}
                   onChange={handleChange}
                   placeholder="Patient's age"
-                  min="0"
-                  max="120"
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
                 />
@@ -185,13 +234,28 @@ const navigate = useNavigate();
                   onChange={handleChange}
                   placeholder="Number of units"
                   min="1"
-                  max="20"
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
                 />
-              </div>
+                {/* Out of Stock */}
+                {formData.bloodGroup && availableUnits === 0 && (
+                  <p className="text-xs text-red-600 mt-1 font-medium">
+                    Out of stock
+                  </p>
+                )}
 
-              <div className="col-span-1">
+                {/* Limited Stock */}
+                {formData.bloodGroup &&
+                  availableUnits > 0 &&
+                  unitsRequired > availableUnits && (
+                    <p className="text-xs text-red-600 mt-1">
+                      Only {availableUnits} units available
+                    </p>
+                )}
+
+              </div>
+              {/*Date Required */}
+              <div>
                 <label htmlFor="requiredDate" className="block text-sm font-semibold text-gray-900 mb-2">
                   Date Required <span className="text-red-600">*</span>
                 </label>
@@ -201,42 +265,31 @@ const navigate = useNavigate();
                   name="requiredDate"
                   value={formData.requiredDate}
                   onChange={handleChange}
+                  min={new Date().toISOString().split("T")[0]}
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
                 />
               </div>
-              {/* Urgency Dropdown */}
-<div>
-  <label htmlFor="urgency" className="block text-sm font-semibold text-gray-900 mb-2">
-    Urgency Level <span className="text-red-600">*</span>
-  </label>
 
-  <select
-    name="urgency"
-    value={formData.urgency}
-    onChange={handleChange}
-    required
-    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-  >
-    <option value="">Select urgency</option>
-
-    <option value="Low">
-      Low (within 3 days)
-    </option>
-
-    <option value="Medium">
-      Medium (within 2 days)
-    </option>
-
-    <option value="High">
-      High (within 1 day)
-    </option>
-
-    <option value="Critical">
-      Critical (within 1 hour)
-    </option>
-  </select>
-</div>
+              <div>
+                <label htmlFor="urgency" className="block text-sm font-semibold text-gray-900 mb-2">
+                  Urgency Level <span className="text-red-600">*</span>
+                </label>
+                <select
+                  id="urgency"
+                  name="urgency"
+                  value={formData.urgency}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition bg-white"
+                >
+                  <option value="">Select urgency</option>
+                  <option value="Low">Low (within 3 days)</option>
+                  <option value="Medium">Medium (within 2 days)</option>
+                  <option value="High">High (within 1 day)</option>
+                  <option value="Critical">Critical (within 1 hour)</option>
+                </select>
+              </div>
 
               {/* Availability & Price Info Card */}
               {formData.bloodGroup && unitsRequired > 0 && (
@@ -244,14 +297,14 @@ const navigate = useNavigate();
                   <div className="text-sm space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-700">Available Units:</span>
-                      <span className="text-gray-900">{availableUnits}</span>
+                      <span className="text-gray-900 font-medium">{availableUnits}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-700">Price Per Unit:</span>
                       <span className="text-gray-900">₹{pricePerUnit.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between pt-2 border-t border-gray-300">
-                      <span className="text-gray-700">Estimated Total:</span>
+                      <span className="text-gray-700">Blood Cost:</span>
                       <span className="text-gray-900 font-bold">₹{bloodPrice.toLocaleString()}</span>
                     </div>
                   </div>
@@ -368,7 +421,7 @@ const navigate = useNavigate();
                   placeholder="Enter phone no."
                   pattern="[0-9]{10}"
                   title="Please enter a valid 10-digit phone number"
-                  max={10}
+                  maxLength={10}
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
                 />
@@ -390,7 +443,7 @@ const navigate = useNavigate();
                 />
               </div>
 
-              {/* Conditional Delivery Address */}
+              {/* Conditional Delivery Address - only required when delivery method is 'delivery' */}
               {formData.deliveryMethod === 'delivery' && (
                 <div className="col-span-2">
                   <label htmlFor="deliveryAddress" className="block text-sm font-semibold text-gray-900 mb-2">
@@ -403,7 +456,7 @@ const navigate = useNavigate();
                     value={formData.deliveryAddress}
                     onChange={handleChange}
                     placeholder="Complete delivery address"
-                    required
+                    required={formData.deliveryMethod === 'delivery'}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
                   />
                 </div>
@@ -421,7 +474,7 @@ const navigate = useNavigate();
               name="additionalNotes"
               value={formData.additionalNotes}
               onChange={handleChange}
-              placeholder="Any additional information that might be helpful (e.g., urgency level, special requirements)"
+              placeholder="Any additional information that might be helpful"
               rows={4}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition resize-none"
             />
@@ -444,17 +497,17 @@ const navigate = useNavigate();
                     <span className="font-medium text-gray-900">{unitsRequired}</span>
                   </div>
                   <div className="flex justify-between text-gray-700">
-                    <span>Price:</span>
+                    <span>Blood Cost:</span>
                     <span className="font-medium text-gray-900">₹{bloodPrice.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-gray-700">
-                    <span>Delivery:</span>
+                    <span>Delivery Charge:</span>
                     <span className="font-medium text-gray-900">
                       {deliveryCharge > 0 ? `₹${deliveryCharge}` : 'Free'}
                     </span>
                   </div>
                   <div className="flex justify-between pt-3 border-t border-gray-300">
-                    <span className="text-gray-900 font-semibold">Total Payable:</span>
+                    <span className="text-gray-900 font-semibold text-lg">Total Payable:</span>
                     <span className="text-2xl font-bold text-red-600">₹{totalPayable.toLocaleString()}</span>
                   </div>
                 </div>
@@ -466,13 +519,14 @@ const navigate = useNavigate();
           <div className="text-center pt-4">
             <button
               type="submit"
-              className="bg-red-600 text-white px-12 py-4 rounded-lg font-semibold text-lg hover:bg-red-700 transition shadow-lg inline-flex items-center gap-3"
+              disabled={isButtonDisabled}
+              className="bg-red-600 text-white px-12 py-4 rounded-lg font-semibold text-lg hover:bg-red-700 transition shadow-lg inline-flex items-center gap-3 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               <Send className="w-6 h-6" />
               Confirm & Proceed to Payment
             </button>
             <p className="text-sm text-gray-600 mt-4">
-              By submitting this request, you agree to be contacted by our team and verified donors.
+              By submitting this request, you agree to be contacted by our team.
             </p>
           </div>
         </div>
