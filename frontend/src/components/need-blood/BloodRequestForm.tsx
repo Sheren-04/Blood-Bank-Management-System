@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send } from 'lucide-react';
+import api from '../../services/api';
 
 export function BloodRequestForm() {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export function BloodRequestForm() {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:5000/api/requests', {
+      const response = await api.post('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
