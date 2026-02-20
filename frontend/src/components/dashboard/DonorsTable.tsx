@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { BACKEND_URL } from "../../utils/scroll";
+import api from '../../services/api';
 
 interface Donor {
   id: number;
@@ -46,22 +47,18 @@ export function DonorsTable({
   const endIndex = startIndex + itemsPerPage;
   const currentDonors = filteredDonors && filteredDonors.slice(startIndex, endIndex);
 
-  const handleDelete = (id: number, name: string) => {
-    if (confirm(`Are you sure you want to delete donor "${name}"?`)) {
-      // Handle delete logic here
-      console.log("Deleting donor:", id);
-    }
-  };
+  // const handleDelete = (id: number, name: string) => {
+  //   if (confirm(`Are you sure you want to delete donor "${name}"?`)) {
+  //     // Handle delete logic here
+  //     console.log("Deleting donor:", id);
+  //   }
+  // };
 
   const getAllDonor = async () => {
     try {
-      const token = localStorage.getItem("token");
+      // const token = sessionStorage.getItem("token");
 
-      const res = await axios.get(`${BACKEND_URL}/api/donors/get-donors`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await api.get(`/donors/get-donors`);
 
       if (res?.data) {
         const  { data, count }  = res.data || {};
