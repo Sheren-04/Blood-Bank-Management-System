@@ -3,6 +3,7 @@ import { TopBar } from '../components/dashboard/TopBar';
 import { PasswordInput } from '../components/dashboard/PasswordInput';
 import { useState } from 'react';
 import { Info } from 'lucide-react';
+import api from '../services/api';
 
 export default function ChangePassword() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -12,22 +13,27 @@ export default function ChangePassword() {
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleCancel = () => {
+  const resetForm = () => {
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
+  };
+
+  const handleCancel = () => {
+    resetForm();
     setShowSuccess(false);
     setShowError(false);
     setErrorMessage('');
   };
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+
     setShowSuccess(false);
     setShowError(false);
     setErrorMessage('');
 
-    // Basic validation
+    // ✅ Client-side validation
     if (!currentPassword || !newPassword || !confirmPassword) {
       setShowError(true);
       setErrorMessage('All fields are required');
@@ -46,23 +52,35 @@ export default function ChangePassword() {
       return;
     }
 
-    // Simulate password check (in real app, this would call backend)
-    if (currentPassword !== 'admin123') {
+    try {
+      // ✅ Axios automatically parses JSON
+      const response = await api.post('/admin/change-password', {
+        currentPassword,
+        newPassword,
+      });
+
+      // Optional: you can check response.data.success if needed
+      if (!response.data.success) {
+        throw new Error(response.data.message);
+      }
+
+      setShowSuccess(true);
+      resetForm();
+
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 3000);
+
+    } catch (error: any) {
       setShowError(true);
-      setErrorMessage('Incorrect current password');
-      return;
+
+      // ✅ Proper axios error handling
+      if (error.response?.data?.message) {
+        setErrorMessage(error.response.data.message);
+      } else {
+        setErrorMessage('Failed to update password');
+      }
     }
-
-    // Success
-    setShowSuccess(true);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-
-    // Hide success message after 3 seconds
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 3000);
   };
 
   return (
