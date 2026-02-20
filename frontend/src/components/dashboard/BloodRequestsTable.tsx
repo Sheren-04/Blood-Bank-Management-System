@@ -1,252 +1,258 @@
 import { useState } from 'react';
+import { AlertCircle } from 'lucide-react';
 
-interface BloodRequest {
-  id: number;
+export interface BloodRequest {
+  _id: string;
   patientName: string;
+  age: number;
+  gender: string;
+  deliveryMethod: string;
+  paymentMode: string;
+  deliveryAddress: string;
+  additionalNotes: string;
+  amount: number;
+  contactPerson: string;
+  phoneNumber: string;
+  email: string;
   bloodGroup: string;
-  units: number;
-  hospital: string;
-  contactNumber: string;
-  date: string;
-  status: 'Pending' | 'Approved' | 'Completed';
+  unitsRequired: number;
+  requiredDate: string;
+  urgency: 'Low' | 'Medium' | 'High' | 'Critical';
+  status: 'Pending' | 'Out for delivery' | 'Completed';
+  createdAt: string;
 }
 
-const mockRequests: BloodRequest[] = [
-  {
-    id: 1,
-    patientName: 'Robert Anderson',
-    bloodGroup: 'O+',
-    units: 2,
-    hospital: 'City Hospital, New York',
-    contactNumber: '+1 234-567-8901',
-    date: '2025-01-25',
-    status: 'Pending',
-  },
-  {
-    id: 2,
-    patientName: 'Patricia Miller',
-    bloodGroup: 'A-',
-    units: 3,
-    hospital: 'Memorial Medical Center, Boston',
-    contactNumber: '+1 234-567-8902',
-    date: '2025-01-24',
-    status: 'Approved',
-  },
-  {
-    id: 3,
-    patientName: 'Christopher Wilson',
-    bloodGroup: 'B+',
-    units: 1,
-    hospital: 'St. Mary Hospital, Chicago',
-    contactNumber: '+1 234-567-8903',
-    date: '2025-01-23',
-    status: 'Pending',
-  },
-  {
-    id: 4,
-    patientName: 'Linda Moore',
-    bloodGroup: 'AB+',
-    units: 4,
-    hospital: 'General Hospital, Los Angeles',
-    contactNumber: '+1 234-567-8904',
-    date: '2025-01-22',
-    status: 'Completed',
-  },
-  {
-    id: 5,
-    patientName: 'Daniel Taylor',
-    bloodGroup: 'O-',
-    units: 2,
-    hospital: 'Community Hospital, Miami',
-    contactNumber: '+1 234-567-8905',
-    date: '2025-01-21',
-    status: 'Approved',
-  },
-  {
-    id: 6,
-    patientName: 'Barbara Thomas',
-    bloodGroup: 'A+',
-    units: 3,
-    hospital: 'University Hospital, Seattle',
-    contactNumber: '+1 234-567-8906',
-    date: '2025-01-20',
-    status: 'Completed',
-  },
-  {
-    id: 7,
-    patientName: 'Matthew Jackson',
-    bloodGroup: 'B-',
-    units: 1,
-    hospital: 'Regional Medical Center, Denver',
-    contactNumber: '+1 234-567-8907',
-    date: '2025-01-19',
-    status: 'Pending',
-  },
-  {
-    id: 8,
-    patientName: 'Elizabeth White',
-    bloodGroup: 'AB-',
-    units: 2,
-    hospital: 'Central Hospital, Phoenix',
-    contactNumber: '+1 234-567-8908',
-    date: '2025-01-18',
-    status: 'Approved',
-  },
-  {
-    id: 9,
-    patientName: 'Anthony Harris',
-    bloodGroup: 'O+',
-    units: 3,
-    hospital: 'Providence Hospital, Portland',
-    contactNumber: '+1 234-567-8909',
-    date: '2025-01-17',
-    status: 'Completed',
-  },
-  {
-    id: 10,
-    patientName: 'Nancy Martin',
-    bloodGroup: 'A-',
-    units: 1,
-    hospital: 'Trinity Medical Center, Austin',
-    contactNumber: '+1 234-567-8910',
-    date: '2025-01-16',
-    status: 'Pending',
-  },
-];
-
 interface BloodRequestsTableProps {
+  requests: BloodRequest[];
+  loading: boolean;
   searchQuery: string;
   bloodGroupFilter: string;
   statusFilter: string;
+  urgencyFilter: string;
+  onStatusUpdate: (id: string, status: string) => void;
 }
 
 export function BloodRequestsTable({
+  requests,
+  loading,
   searchQuery,
   bloodGroupFilter,
   statusFilter,
+  urgencyFilter,
+  onStatusUpdate,
 }: BloodRequestsTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedRequest, setSelectedRequest] = useState<BloodRequest | null>(null);
   const itemsPerPage = 10;
 
-  // Filter requests based on search query, blood group, and status
-  const filteredRequests = mockRequests.filter((request) => {
+  /* ================= Filtering ================= */
+
+  const filteredRequests = requests.filter((request) => {
     const matchesSearch =
-      request.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.hospital.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.contactNumber.includes(searchQuery);
+      request.contactPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.phoneNumber.includes(searchQuery);
 
     const matchesBloodGroup =
       bloodGroupFilter === 'all' || request.bloodGroup === bloodGroupFilter;
 
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
+    const matchesStatus =
+      statusFilter === 'all' || request.status === statusFilter;
 
-    return matchesSearch && matchesBloodGroup && matchesStatus;
+    const matchesUrgency =
+      urgencyFilter === 'all' || request.urgency === urgencyFilter;
+
+    return matchesSearch && matchesBloodGroup && matchesStatus && matchesUrgency;
   });
 
-  // Pagination
-  const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
+  /* ================= Sorting ================= */
+
+  const urgencyPriority: Record<string, number> = {
+    Critical: 4,
+    High: 3,
+    Medium: 2,
+    Low: 1,
+  };
+
+  const sortedRequests = [...filteredRequests].sort(
+    (a, b) => urgencyPriority[b.urgency] - urgencyPriority[a.urgency]
+  );
+
+  /* ================= Pagination ================= */
+
+  const totalPages = Math.ceil(sortedRequests.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentRequests = filteredRequests.slice(startIndex, endIndex);
+  const currentRequests = sortedRequests.slice(startIndex, endIndex);
 
-  const handleApprove = (id: number, patientName: string) => {
-    if (confirm(`Approve blood request for "${patientName}"?`)) {
-      console.log('Approving request:', id);
+  /* ================= Handlers ================= */
+
+  const handleStatusUpdate = (id: string, newStatus: string) => {
+    if (!newStatus) return;
+    onStatusUpdate(id, newStatus);
+  };
+
+  const handleMarkDelivered = (id: string, contactPerson: string) => {
+    if (confirm(`Mark blood request for "${contactPerson}" as delivered?`)) {
+      onStatusUpdate(id, "Completed");
     }
   };
 
-  const handleComplete = (id: number, patientName: string) => {
-    if (confirm(`Mark blood request for "${patientName}" as completed?`)) {
-      console.log('Completing request:', id);
+  const handleView = (request: BloodRequest) => {
+    setSelectedRequest(request);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedRequest(null);
+  };
+
+  /* ================= Badge Helpers ================= */
+
+  const getUrgencyBadge = (urgency: string) => {
+    switch (urgency) {
+      case 'Low':
+        return 'bg-gray-100 text-gray-700';
+      case 'Medium':
+        return 'bg-blue-100 text-blue-700';
+      case 'High':
+        return 'bg-orange-100 text-orange-700';
+      case 'Critical':
+        return 'bg-red-100 text-red-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
     }
   };
 
-  const handleDelete = (id: number, patientName: string) => {
-    if (confirm(`Are you sure you want to delete the request for "${patientName}"?`)) {
-      console.log('Deleting request:', id);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'Out for delivery':
+        return 'bg-blue-100 text-blue-700';
+      case 'Completed':
+        return 'bg-green-100 text-green-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
     }
   };
+
+  const InfoItem = ({ label, value }: { label: string; value: any }) => (
+    <div>
+      <label className="block text-sm font-semibold text-gray-600 mb-1">
+        {label}
+      </label>
+      <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-800">
+        {value || "N/A"}
+      </div>
+    </div>
+  );
+
+  /* ================= JSX ================= */
 
   return (
     <div>
-      {/* Table Card */}
       <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-300">
-              <th className="text-left p-4 font-semibold text-gray-900">Patient Name</th>
+              <th className="text-left p-4 font-semibold text-gray-900">Contact Person</th>
+              <th className="text-left p-4 font-semibold text-gray-900">Phone Number</th>
+              <th className="text-left p-4 font-semibold text-gray-900">Email</th>
               <th className="text-left p-4 font-semibold text-gray-900">Blood Group</th>
               <th className="text-left p-4 font-semibold text-gray-900">Units</th>
-              <th className="text-left p-4 font-semibold text-gray-900">Hospital / Location</th>
-              <th className="text-left p-4 font-semibold text-gray-900">Contact Number</th>
-              <th className="text-left p-4 font-semibold text-gray-900">Date</th>
+              <th className="text-left p-4 font-semibold text-gray-900">Required Date</th>
+              <th className="text-left p-4 font-semibold text-gray-900">Urgency</th>
               <th className="text-left p-4 font-semibold text-gray-900">Status</th>
+              <th className="text-left p-4 font-semibold text-gray-900">Request Created</th>
               <th className="text-left p-4 font-semibold text-gray-900">Actions</th>
             </tr>
           </thead>
+
           <tbody>
-            {currentRequests.length > 0 ? (
-              currentRequests.map((request, index) => (
+            {loading ? (
+              <tr>
+                <td colSpan={10} className="p-8 text-center text-gray-500">
+                  Loading requests...
+                </td>
+              </tr>
+            ) : currentRequests.length > 0 ? (
+              currentRequests.map((request) => (
                 <tr
-                  key={request.id}
+                  key={request._id}
                   className={`border-b border-gray-200 hover:bg-gray-50 ${
-                    index % 2 === 1 ? 'bg-gray-50' : ''
+                    request.urgency === 'Critical' ? 'bg-red-50' : ''
                   }`}
                 >
-                  <td className="p-4 font-medium text-gray-900">{request.patientName}</td>
                   <td className="p-4">
-                    <span className="font-medium text-gray-900">{request.bloodGroup}</span>
+                    <div className="flex items-center gap-2">
+                      {request.urgency === 'Critical' && (
+                        <AlertCircle className="w-4 h-4 text-red-600" />
+                      )}
+                      <span className="font-medium text-gray-900">
+                        {request.contactPerson}
+                      </span>
+                    </div>
                   </td>
-                  <td className="p-4 text-gray-700">{request.units}</td>
-                  <td className="p-4 text-gray-700">{request.hospital}</td>
-                  <td className="p-4 text-gray-700">{request.contactNumber}</td>
-                  <td className="p-4 text-gray-700">{request.date}</td>
+
+                  <td className="p-4 text-gray-700">{request.phoneNumber}</td>
+                  <td className="p-4 text-gray-700">{request.email}</td>
+
                   <td className="p-4">
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                        request.status === 'Pending'
-                          ? 'bg-red-100 text-red-700'
-                          : request.status === 'Approved'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-green-100 text-green-700'
-                      }`}
-                    >
+                    <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-900">
+                      {request.bloodGroup}
+                    </span>
+                  </td>
+
+                  <td className="p-4 text-gray-700">{request.unitsRequired}</td>
+
+                  <td className="p-4 text-gray-700">
+                    {new Date(request.requiredDate).toLocaleDateString()}
+                  </td>
+
+                  <td className="p-4">
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getUrgencyBadge(request.urgency)}`}>
+                      {request.urgency}
+                    </span>
+                  </td>
+
+                  <td className="p-4">
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(request.status)}`}>
                       {request.status}
                     </span>
                   </td>
+
+                  <td className="p-4 text-gray-700 text-sm">
+                    {new Date(request.createdAt).toLocaleString()}
+                  </td>
+
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <button className="text-gray-700 hover:text-gray-900 font-medium">
+                      <button 
+                        onClick={() => handleView(request)}
+                        className="text-gray-700 hover:text-gray-900 font-medium text-sm"
+                      >
                         View
                       </button>
-                      {request.status === 'Pending' && (
-                        <>
-                          <span className="text-gray-300">|</span>
-                          <button
-                            onClick={() => handleApprove(request.id, request.patientName)}
-                            className="text-gray-700 hover:text-gray-900 font-medium"
-                          >
-                            Approve
-                          </button>
-                        </>
-                      )}
-                      {request.status === 'Approved' && (
-                        <>
-                          <span className="text-gray-300">|</span>
-                          <button
-                            onClick={() => handleComplete(request.id, request.patientName)}
-                            className="text-gray-700 hover:text-gray-900 font-medium"
-                          >
-                            Complete
-                          </button>
-                        </>
-                      )}
+
                       <span className="text-gray-300">|</span>
-                      <button
-                        onClick={() => handleDelete(request.id, request.patientName)}
-                        className="text-red-600 hover:text-red-700 font-medium"
+
+                      <select
+                        onChange={(e) => handleStatusUpdate(request._id, e.target.value)}
+                        className="text-sm text-gray-700 hover:text-gray-900 font-medium border-none bg-transparent cursor-pointer focus:outline-none"
                       >
-                        Delete
+                        <option value="">Update Status</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Out for delivery">Out for delivery</option>
+                        <option value="Completed">Completed</option>
+                      </select>
+
+                      <span className="text-gray-300">|</span>
+
+                      <button
+                        onClick={() => handleMarkDelivered(request._id, request.contactPerson)}
+                        className="text-green-600 hover:text-green-700 font-medium text-sm"
+                      >
+                        Mark Delivered
                       </button>
                     </div>
                   </td>
@@ -254,7 +260,7 @@ export function BloodRequestsTable({
               ))
             ) : (
               <tr>
-                <td colSpan={8} className="p-8 text-center text-gray-500">
+                <td colSpan={10} className="p-8 text-center text-gray-500">
                   No blood requests found matching your criteria.
                 </td>
               </tr>
@@ -264,12 +270,13 @@ export function BloodRequestsTable({
       </div>
 
       {/* Pagination Footer */}
-      {filteredRequests.length > 0 && (
+      {sortedRequests.length > 0 && (
         <div className="mt-4 flex items-center justify-between">
           <p className="text-gray-700">
-            Showing {startIndex + 1}–{Math.min(endIndex, filteredRequests.length)} of{' '}
-            {filteredRequests.length} requests
+            Showing {startIndex + 1}–{Math.min(endIndex, sortedRequests.length)} of{' '}
+            {sortedRequests.length} requests
           </p>
+
           <div className="flex gap-2">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
@@ -282,6 +289,7 @@ export function BloodRequestsTable({
             >
               Previous
             </button>
+
             <button
               onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
@@ -293,6 +301,99 @@ export function BloodRequestsTable({
             >
               Next
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Details Modal */}
+      {selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="border-b border-gray-200 px-8 py-6 bg-gray-50 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">
+                    Contact Details
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Complete blood request information
+                  </p>
+                </div>
+                <button
+                  onClick={handleCloseModal}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-8 py-6 space-y-8">
+              {/* Patient Information */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800 mb-4">
+                  Patient Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <InfoItem label="Patient Name" value={selectedRequest.patientName} />
+                  <InfoItem label="Age" value={selectedRequest.age} />
+                  <InfoItem label="Gender" value={selectedRequest.gender} />
+                  <InfoItem label="Blood Group" value={selectedRequest.bloodGroup} />
+                  <InfoItem label="Units Required" value={selectedRequest.unitsRequired} />
+                  <InfoItem 
+                    label="Required Date" 
+                    value={new Date(selectedRequest.requiredDate).toLocaleDateString()} 
+                  />
+                  <InfoItem label="Urgency" value={selectedRequest.urgency} />
+                  <InfoItem label="Amount" value={`₹ ${selectedRequest.amount}`} />
+                </div>
+              </div>
+
+              {/* Delivery & Payment */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800 mb-4">
+                  Delivery & Payment Details
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <InfoItem label="Delivery Method" value={selectedRequest.deliveryMethod} />
+                  <InfoItem label="Payment Mode" value={selectedRequest.paymentMode} />
+                  <InfoItem label="Contact Person" value={selectedRequest.contactPerson} />
+                  <InfoItem label="Phone Number" value={selectedRequest.phoneNumber} />
+                  <InfoItem label="Email" value={selectedRequest.email} />
+                </div>
+
+                <div className="mt-6">
+                  <label className="block text-sm font-semibold text-gray-600 mb-1">
+                    Delivery Address
+                  </label>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-gray-800">
+                    {selectedRequest.deliveryAddress}
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Notes */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800 mb-4">
+                  Additional Notes
+                </h4>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-gray-800 whitespace-pre-wrap">
+                  {selectedRequest.additionalNotes || "No additional notes provided."}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 px-8 py-5 flex justify-end bg-gray-50 rounded-b-xl">
+              <button
+                onClick={handleCloseModal}
+                className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
