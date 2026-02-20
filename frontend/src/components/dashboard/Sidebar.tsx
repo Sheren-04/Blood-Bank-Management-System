@@ -23,7 +23,7 @@ export function Sidebar({ activePage }: SidebarProps) {
     : location.pathname;
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     navigate('/admin/login');
   };
 
