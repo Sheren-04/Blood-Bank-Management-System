@@ -1,150 +1,57 @@
 import { useState } from 'react';
-
-interface ContactQuery {
-  id: number;
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  date: string;
-  status: 'New' | 'Replied' | 'Closed';
-}
-
-const mockQueries: ContactQuery[] = [
-  {
-    id: 1,
-    name: 'John Williams',
-    email: 'john.williams@email.com',
-    subject: 'Blood Donation Eligibility Question',
-    message:
-      'Hello, I recently traveled to a malaria-endemic region and wanted to know when I can donate blood again. Could you please provide information on the waiting period and any specific requirements?',
-    date: '2025-01-26',
-    status: 'New',
-  },
-  {
-    id: 2,
-    name: 'Sarah Martinez',
-    email: 'sarah.m@email.com',
-    subject: 'Urgent Blood Request Follow-up',
-    message:
-      'I submitted a blood request for my father who needs O- blood type urgently. Could you please update me on the status of the request? This is quite urgent as his surgery is scheduled for tomorrow.',
-    date: '2025-01-25',
-    status: 'Replied',
-  },
-  {
-    id: 3,
-    name: 'Michael Chen',
-    email: 'michael.chen@email.com',
-    subject: 'Donation Center Location Query',
-    message:
-      'I would like to donate blood but I am not sure about the nearest donation center in the Chicago area. Can you provide me with a list of centers and their operating hours?',
-    date: '2025-01-24',
-    status: 'New',
-  },
-  {
-    id: 4,
-    name: 'Emily Thompson',
-    email: 'emily.t@email.com',
-    subject: 'Thank You for Blood Donation',
-    message:
-      'I wanted to thank your organization for the wonderful blood donation experience. The staff was very professional and caring. I will definitely be donating again soon.',
-    date: '2025-01-23',
-    status: 'Closed',
-  },
-  {
-    id: 5,
-    name: 'David Rodriguez',
-    email: 'david.r@email.com',
-    subject: 'Partnership Inquiry',
-    message:
-      'I represent a corporate organization interested in organizing a blood donation camp at our office. Could you please share details about how we can partner with your organization for this initiative?',
-    date: '2025-01-22',
-    status: 'Replied',
-  },
-  {
-    id: 6,
-    name: 'Jessica Brown',
-    email: 'jessica.brown@email.com',
-    subject: 'Post-Donation Health Concern',
-    message:
-      'I donated blood yesterday and have been feeling dizzy and weak since then. Is this normal? Should I be concerned? Please advise on what steps I should take.',
-    date: '2025-01-21',
-    status: 'New',
-  },
-  {
-    id: 7,
-    name: 'Christopher Lee',
-    email: 'chris.lee@email.com',
-    subject: 'Blood Type Verification',
-    message:
-      'During my last donation, I was told my blood type is AB+. However, my medical records show a different blood type. Can you help me verify which is correct?',
-    date: '2025-01-20',
-    status: 'Closed',
-  },
-  {
-    id: 8,
-    name: 'Amanda Walker',
-    email: 'amanda.w@email.com',
-    subject: 'Volunteer Opportunity',
-    message:
-      'I am a nursing student and would love to volunteer at your blood donation drives. Could you please let me know about volunteer opportunities and the application process?',
-    date: '2025-01-19',
-    status: 'Replied',
-  },
-  {
-    id: 9,
-    name: 'Daniel Harris',
-    email: 'daniel.harris@email.com',
-    subject: 'Donation Certificate Request',
-    message:
-      'I donated blood last month and would like to request a donation certificate for my employer. Could you please send me the certificate or guide me on how to obtain it?',
-    date: '2025-01-18',
-    status: 'Closed',
-  },
-  {
-    id: 10,
-    name: 'Michelle Young',
-    email: 'michelle.y@email.com',
-    subject: 'Medication and Donation Eligibility',
-    message:
-      'I am currently taking antibiotics for an infection. How long do I need to wait after completing my medication before I can donate blood? Thank you for your help.',
-    date: '2025-01-17',
-    status: 'New',
-  },
-];
+import type { ContactQuery } from '../../pages/ContactQueriesManagement';
 
 interface ContactQueriesTableProps {
+  queries: ContactQuery[];
+  loading: boolean;
   searchQuery: string;
   statusFilter: string;
   dateFilter: string;
+  onStatusUpdate: (id: string, status: "New" | "Replied" | "Closed") => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
 export function ContactQueriesTable({
+  queries,
+  loading,
   searchQuery,
   statusFilter,
   dateFilter,
+  onStatusUpdate,
+  onDelete,
 }: ContactQueriesTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedQuery, setSelectedQuery] = useState<ContactQuery | null>(null);
   const [replyText, setReplyText] = useState('');
   const itemsPerPage = 10;
 
+  const safeQueries = queries ?? [];
+
   // Filter queries
-  const filteredQueries = mockQueries.filter((query) => {
+  const filteredQueries = safeQueries.filter((query) => {
     const matchesSearch =
       query.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       query.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      query.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (query.subject && query.subject.toLowerCase().includes(searchQuery.toLowerCase())) ||
       query.message.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || query.status === statusFilter;
 
-    // Simple date filtering (you can enhance this)
+    // Date filtering
     let matchesDate = true;
-    if (dateFilter === 'today') {
-      matchesDate = query.date === '2025-01-26';
-    } else if (dateFilter === 'week') {
-      matchesDate = new Date(query.date) >= new Date('2025-01-20');
+    if (dateFilter !== 'all') {
+      const queryDate = new Date(query.createdAt);
+      const now = new Date();
+      
+      if (dateFilter === 'today') {
+        matchesDate = queryDate.toDateString() === now.toDateString();
+      } else if (dateFilter === 'week') {
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        matchesDate = queryDate >= weekAgo;
+      } else if (dateFilter === 'month') {
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        matchesDate = queryDate >= monthAgo;
+      }
     }
 
     return matchesSearch && matchesStatus && matchesDate;
@@ -161,6 +68,14 @@ export function ContactQueriesTable({
     return text.substring(0, maxLength) + '...';
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
   const handleView = (query: ContactQuery) => {
     setSelectedQuery(query);
     setReplyText('');
@@ -171,19 +86,37 @@ export function ContactQueriesTable({
     setReplyText('');
   };
 
-  const handleSendReply = () => {
-    if (replyText.trim()) {
-      console.log('Sending reply:', replyText);
-      alert('Reply sent successfully!');
-      handleCloseModal();
-    }
-  };
+const handleSendReply = async () => {
+  if (!replyText.trim() || !selectedQuery) return;
 
-  const handleMarkClosed = (id: number, name: string) => {
-    if (confirm(`Mark message from "${name}" as closed?`)) {
-      console.log('Marking as closed:', id);
-    }
-  };
+  try {
+    await onStatusUpdate(selectedQuery._id, "Replied");
+
+    setSelectedQuery({
+      ...selectedQuery,
+      status: "Replied",
+    });
+
+    alert("Reply sent successfully!");
+    handleCloseModal();
+  } catch {
+    alert("Failed to update status");
+  }
+};
+
+
+
+const handleMarkClosed = async (id: string, name: string) => {
+  if (!confirm(`Mark message from "${name}" as closed?`)) return;
+
+  try {
+    await onStatusUpdate(id, "Closed");
+  } catch {
+    alert("Failed to update status");
+  }
+};
+
+
 
   return (
     <div>
@@ -202,21 +135,27 @@ export function ContactQueriesTable({
             </tr>
           </thead>
           <tbody>
-            {currentQueries.length > 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="p-8 text-center text-gray-500">
+                  Loading queries...
+                </td>
+              </tr>
+            ) : currentQueries.length > 0 ? (
               currentQueries.map((query, index) => (
                 <tr
-                  key={query.id}
+                  key={query._id}
                   className={`border-b border-gray-200 hover:bg-gray-50 ${
                     index % 2 === 1 ? 'bg-gray-50' : ''
                   }`}
                 >
                   <td className="p-4 font-medium text-gray-900">{query.name}</td>
                   <td className="p-4 text-gray-700">{query.email}</td>
-                  <td className="p-4 text-gray-700">{query.subject}</td>
+                  <td className="p-4 text-gray-700">{query.subject || "N/A"}</td>
                   <td className="p-4 text-gray-600 text-sm">
                     {truncateText(query.message, 50)}
                   </td>
-                  <td className="p-4 text-gray-700">{query.date}</td>
+                  <td className="p-4 text-gray-700">{formatDate(query.createdAt)}</td>
                   <td className="p-4">
                     <span
                       className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
@@ -249,7 +188,7 @@ export function ContactQueriesTable({
                           </button>
                           <span className="text-gray-300">|</span>
                           <button
-                            onClick={() => handleMarkClosed(query.id, query.name)}
+                            onClick={() => handleMarkClosed(query._id, query.name)}
                             className="text-gray-700 hover:text-gray-900 font-medium"
                           >
                             Mark Closed
@@ -341,13 +280,13 @@ export function ContactQueriesTable({
               {/* Subject */}
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-1">Subject</label>
-                <p className="text-gray-700">{selectedQuery.subject}</p>
+                <p className="text-gray-700">{selectedQuery.subject || "N/A"}</p>
               </div>
 
               {/* Date */}
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-1">Date</label>
-                <p className="text-gray-700">{selectedQuery.date}</p>
+                <p className="text-gray-700">{formatDate(selectedQuery.createdAt)}</p>
               </div>
 
               {/* Status */}
