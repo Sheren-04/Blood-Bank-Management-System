@@ -1,11 +1,16 @@
-import { Sidebar } from '../components/dashboard/Sidebar';
-import { TopBar } from '../components/dashboard/TopBar';
-import { InventoryStatsCards } from '../components/dashboard/InventoryStatsCards';
-import { InventoryTable } from '../components/dashboard/InventoryTable';
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { Sidebar } from "../components/dashboard/Sidebar";
+import { TopBar } from "../components/dashboard/TopBar";
+import { InventoryStatsCards } from "../components/dashboard/InventoryStatsCards";
+import { InventoryTable } from "../components/dashboard/InventoryTable";
+import api from '../services/api';
 
-export interface InventoryItem {
+// =====================
+// TYPES
+// =====================
+
+export interface InventoryItem {  
   _id: string;
   bloodGroup: string;
   unitsAvailable: number;
@@ -15,54 +20,96 @@ export interface InventoryItem {
 export interface InventorySummary {
   totalUnits: number;
   bloodGroups: number;
-  lowStockCount: number;
+  criticalStockCount: number;
 }
+
+interface InventoryResponse {
+  inventory: InventoryItem[];
+  summary: InventorySummary;
+}
+
+interface UpdatePayload {
+  unitsAvailable: number;
+  pricePerUnit: number;
+}
+
+// =====================
+// COMPONENT
+// =====================
 
 export default function InventoryManagement() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [summary, setSummary] = useState<InventorySummary>({
     totalUnits: 0,
     bloodGroups: 0,
-    lowStockCount: 0,
+    criticalStockCount: 0,
   });
+  const [loading, setLoading] = useState(true);
 
-  const token = localStorage.getItem("token");
+  // Get token from sessionStorage
+  // const token = sessionStorage.getItem("token");
 
-  /* ---------- Fetch ---------- */
+  // =====================
+  // FETCH INVENTORY
+  // =====================
+
   const fetchInventory = async () => {
     try {
-      const res = await axios.get("/api/inventory", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setInventory(res.data.inventory);
-      setSummary(res.data.summary);
-    } catch (err) {
-      console.error("Inventory fetch failed", err);
+      setLoading(true);
+
+      const response = await api.get<InventoryResponse>(
+        "/inventory"
+      );
+
+      setInventory(response.data.inventory);
+      setSummary(response.data.summary);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Inventory fetch failed:", error.response?.data);
+        console.error("Status:", error.response?.status);
+      } else {
+        console.error("Inventory fetch failed:", error);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  /* ---------- Update ---------- */
-  const handleUpdate = async (
-    id: string,
-    payload: { unitsAvailable: number; pricePerUnit: number }
-  ) => {
+  // =====================
+  // UPDATE INVENTORY ITEM
+  // =====================
+
+  const handleUpdate = async (id: string, payload: UpdatePayload) => {
     try {
-      await axios.put(`/api/inventory/${id}`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      fetchInventory(); // refresh
-    } catch (err) {
-      console.error("Update failed", err);
+      await api.put(
+        `/inventory/${id}`,
+        payload);
+
+      // Refresh inventory after successful update
+      await fetchInventory();
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Update failed:", error.response?.data);
+        alert(error.response?.data?.message || "Failed to update inventory");
+      } else {
+        console.error("Update failed:", error);
+        alert("Failed to update inventory");
+      }
     }
   };
+
+  // =====================
+  // FETCH ON MOUNT
+  // =====================
 
   useEffect(() => {
     fetchInventory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // =====================
+  // RENDER
+  // =====================
 
   return (
     <div className="flex h-screen bg-white">
@@ -80,17 +127,25 @@ export default function InventoryManagement() {
             </p>
           </div>
 
-          {/* Summary Stats */}
-          <InventoryStatsCards summary={summary} />
+          {/* Loading State */}
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">Loading inventory...</p>
+            </div>
+          ) : (
+            <>
+              {/* Summary Stats */}
+              <InventoryStatsCards summary={summary} />
 
-          {/* Inventory Table */}
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Inventory Details</h3>
-            <InventoryTable 
-              inventory={inventory}
-              onUpdate={handleUpdate}
-            />
-          </div>
+              {/* Inventory Table */}
+              <div className="mt-8">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">
+                  Inventory Details
+                </h3>
+                <InventoryTable inventory={inventory} onUpdate={handleUpdate} />
+              </div>
+            </>
+          )}
         </main>
       </div>
     </div>
