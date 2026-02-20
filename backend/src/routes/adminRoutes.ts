@@ -1,8 +1,10 @@
 import express from 'express';
 import { loginAdmin, 
         getDashboardStats, 
-        getRecentRequests 
+        getRecentRequests,
+        changePassword, 
     } from '../controllers/adminController';
+import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
@@ -16,5 +18,6 @@ const router = express.Router();
 router.post('/login', loginAdmin);
 router.get('/stats', getDashboardStats);
 router.get('/recent-requests', getRecentRequests);
+router.post('/change-password', protect, changePassword)
 
 export default router;
