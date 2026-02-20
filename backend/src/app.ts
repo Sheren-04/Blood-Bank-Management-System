@@ -1,12 +1,16 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from "helmet";
 
 // Import routes
 import adminRoutes from './routes/adminRoutes';
 import donorRoutes from './routes/donorRoutes';
 import requestRoutes from './routes/requestRoutes';
 import contactRoutes from './routes/contactRoutes';
+import InventoryItem from './routes/inventoryRoutes';
+  
+
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +21,15 @@ const app: Application = express();
 // =====================
 // MIDDLEWARE SETUP
 // =====================
+app.use(helmet());
+import rateLimit from "express-rate-limit";
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+
+app.use(limiter);
 
 // 1. CORS - Allow frontend to make requests
 app.use(cors({
@@ -46,8 +59,9 @@ app.get('/', (_req: Request, res: Response) => {
 // API Routes
 app.use('/api/admin', adminRoutes);      // Admin authentication
 app.use('/api/donors', donorRoutes);     // Donor management
-app.use('/api/requests', requestRoutes); // Blood requests
+app.use('/api/requests', requestRoutes);
 app.use('/api/contact', contactRoutes);  // Contact messages
+app.use('/api/inventory', InventoryItem); // Inventory management
 
 // =====================
 // ERROR HANDLING
